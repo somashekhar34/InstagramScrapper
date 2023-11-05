@@ -5,67 +5,69 @@ import urllib.request
 import os
 from datetime import date
 import random
-import image_scraper
-# instagram URL
-insta_url="https://www.instagram.com"
-# Enter the instagram handle username
-profile_url=""
-response=requests.get(f"{insta_url}/{profile_url}")
+
+# Instagram URL
+instagram_url = "https://www.instagram.com"
+
+# Enter the Instagram handle username
+profile_url = ""
+
+response = requests.get(f"{instagram_url}/{profile_url}")
 today = date.today()
-d1 = today.strftime("%d/%m/%Y")
+current_date = today.strftime("%d/%m/%Y")
+
 print(response.status_code)
-#try:
+
 if response.ok:
-    print("hi")
+    print("HTTP request successful")
     html = response.text
     bs_html = BeautifulSoup(html, features="lxml")
-    a = bs_html.find('body')
-    b = a.find('script')
-    e = b.contents[0]
-    q = e[20:-1].strip()
-    print(q)
-    et = json.loads(q)
-    #print(et)
-    #print(type(et))
-    ty = et['entry_data']['ProfilePage']
-    put = ty[0]
-    yes = put['graphql']['user']['edge_owner_to_timeline_media']['edges']
-    #print(yes)
-    #print(len(yes))
-    for ip in range(3):
-        etg = yes[ip]['node']
-        flag = etg['is_video']
-        hey=etg['shortcode']
-        test = etg['edge_media_to_caption']['edges'][0]['node']['text']
-        yat = test.find("Hindu newspaper")
-        temp="https://www.instagram.com/p/"+hey+"/?__a=1"
-        data = json.load(urllib.request.urlopen(temp))
-        se=(data['graphql']['shortcode_media'])
-        if yat!=-1 and flag==False:
-            fold=test[16:36].strip()
-            folder='D:/Upsc/'+fold
-            dawn=fold.split()
-            putin=dawn[0]
-            d2=d1.split('/')
-            cmp=str(int(d2[0]))
-            if putin.find(cmp)!=-1 :
-                if not os.path.exists(folder) :
-                    os.makedirs(folder)
-                    #print("Yes")
+    body = bs_html.find('body')
+    script_tag = body.find('script')
+    script_content = script_tag.contents[0].strip()
+    data_json = json.loads(script_content)
+
+    profile_data = data_json['entry_data']['ProfilePage'][0]
+    media_data = profile_data['graphql']['user']['edge_owner_to_timeline_media']['edges']
+
+    for i in range(3):
+        media = media_data[i]['node']
+        is_video = media['is_video']
+        shortcode = media['shortcode']
+        caption = media['edge_media_to_caption']['edges'][0]['node']['text']
+        hindu_newspaper = caption.find("Hindu newspaper")
+        instagram_api_url = f"https://www.instagram.com/p/{shortcode}/?__a=1"
+        api_data = json.load(urllib.request.urlopen(instagram_api_url))
+
+        if hindu_newspaper != -1 and not is_video:
+            folder_name = caption[16:36].strip()
+            folder_path = f'D:/Upsc/{folder_name}'
+            folder_name_parts = folder_name.split()
+            first_part = folder_name_parts[0]
+            date_parts = current_date.split('/')
+            year = str(int(date_parts[0]))
+
+            if first_part.find(year) != -1:
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path)
+
                     try:
-                        for i in range(len(se['edge_sidecar_to_children']['edges'])):
-                            r = se['edge_sidecar_to_children']['edges'][i]
-                            what = r['node']['display_resources'][0]
-                            when = what['src']
+                        for j in range(len(api_data['graphql']['shortcode_media']['edge_sidecar_to_children']['edges'])):
+                            resource = api_data['graphql']['shortcode_media']['edge_sidecar_to_children']['edges'][j]['node']['display_resources'][0]
+                            image_url = resource['src']
+
                             while True:
-                                filename = 'pic' + str(i+1) + '.jpg'
-                                folder_in=folder+'/'+filename
-                                file_exists = os.path.isfile(folder_in)
+                                filename = f'pic{j+1}.jpg'
+                                file_path = os.path.join(folder_path, filename)
+                                file_exists = os.path.isfile(file_path)
+
                                 if not file_exists:
-                                    with open(folder_in, 'wb+') as handle:
-                                        response = requests.get(when, stream=True)
+                                    with open(file_path, 'wb+') as handle:
+                                        response = requests.get(image_url, stream=True)
+
                                         if not response.ok:
                                             print(response)
+
                                         for block in response.iter_content(1024):
                                             if not block:
                                                 break
@@ -73,18 +75,12 @@ if response.ok:
                                 else:
                                     continue
                                 break
-                            print("\ndownloading completed-","image:",i+1)
-                            #break
+
+                            print("\nDownloading completed - Image:", j+1)
                     except:
-                        print("Only One Page....Man")
+                        print("Only one page of images available")
 
                 else:
-                    print("Already Exists..")
-
+                    print("Folder already exists")
         else:
             break
-
-
-
-
-
